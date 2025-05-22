@@ -1,0 +1,114 @@
+Module = (Stmt | ModItem)*
+
+ModItem = Item | ClassItem
+
+Item
+    = FuncItem
+    | ProcItem
+    | DeclItem
+    | ConstItem
+
+DeclItem = "DECLARE" Ident ":" 
+    ( Ident | "ARRAY" "[" Expr ":" Expr "]" ("," "[" Expr ":" Expr "]")* "OF" Ident )
+
+ConstItem = "CONSTANT" Ident "=" Expr
+
+ProcItem = "PROCEDURE" Ident Parameters Stmt* "ENDPROCEDURE"
+
+FuncItem = "FUNCTION" Ident Parameters "RETURNS" Ident (Stmt | "RETURN" Expr)* "RETURN" Expr "ENDFUNCTION"
+
+Parameters = "()"
+    | "(" Ident ":" Ident ("," Ident ":" Ident)* ")"
+
+Arguments = "()"
+    | "(" Expr ("," Expr)* ")"
+
+ClassItem = "CLASS" Ident ["INHERITS" Ident] (("PUBLIC" | "PRIVATE") + Item)* "ENDCLASS"
+
+Stmt
+    = AssignStmt
+    | CallStmt
+    | CmdStmt
+    | ExprStmt
+    | IfStmt
+    | CaseStmt
+    | ForStmt
+    | RepeatStmt
+    | WhileStmt
+
+AssignStmt = Ident "<-" Expr
+
+CallStmt = "CALL" Ident Arguments
+
+ExprStmt = Expr
+Expr = SimpleExpr | UnaryOp Expr | "(" Expr ")"
+
+SimpleExpr 
+    = Literal
+    | Ident
+    | Ident Arguments
+    | Ident "[" Expr ("," Expr)* "]"
+    | Ident "." Ident
+    | Range
+    | SimpleExpr BinaryOp SimpleExpr
+
+Literal = Real | Integer | Char | String
+
+UnaryOp = "+" | "-" | "NOT"
+
+BinaryOp 
+    = "+" | "-" | "*" | "/" | "DIV" | "MOD"
+    | ">" | "<" | ">=" | "<=" | "=" | "<>"
+    | "AND" | "OR" | "&"
+
+Real = Integer "." Integer
+
+Integer = Digit+
+
+Digit = "0".."9"
+
+Char = "'" ASCIIChar "'"
+
+String = "\"" ASCIIChar* "\""
+
+Range = Expr "TO" Expr
+
+
+IfStmt = "IF" Expr "THEN" Stmt* ["ELSE" Stmt*] "ENDIF"
+
+CaseStmt = "CASE" Ident "OF"
+    (Expr ":" Stmt*)*
+    (Range ":" Stmt*)*
+    ["OTHERWISE" ":" Stmt*]
+    "ENDCASE"
+
+ForStmt = "FOR" Ident "<-" Range ["STEP" Expr] Stmt* "NEXT" Ident
+
+RepeatStmt = "REPEAT" Stmt* "UNTIL" Expr
+
+WhileStmt = "WHILE" Expr Stmt* "ENDWHILE"
+
+CmdStmt 
+    = OpenFileCmd
+    | ReadFileCmd 
+    | WriteFileCmd 
+    | CloseFileCmd 
+    | SeekCmd  
+    | GetRecordCmd
+    | PutRecordCmd
+
+OpenFileCmd = "OPENFILE" FileIdent "FOR" ("READ" | "WRITE" | "APPEND")
+
+FileIdent = String | Ident
+
+ReadFileCmd = "READFILE" FileIdent "," Ident
+
+WriteFileCmd = "WRITEFILE" FileIdent "," (String | Ident)
+
+CloseFileCmd = "CLOSEFILE" FileIdent
+
+SeekCmd = "SEEK" FileIdent "," Expr
+
+GetRecordCmd = FileIdent "," Ident
+
+PutRecordCmd = FileIdent "," (String | Ident)
