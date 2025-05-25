@@ -3,12 +3,14 @@
 
 #include "chunk.h"
 #include "stack.h"
+#include "table.h"
 
 struct vm {
   uint8_t *ip;
   obj_t objects;
   chunk_t chunk;
   stack_t stack;
+  table_t strings;
 };
 
 enum interpret_result {
@@ -21,6 +23,5 @@ void vm_init(struct vm *vm);
 void vm_free(struct vm *vm);
 enum interpret_result vm_interpret(struct vm *vm, const chunk_t chunk);
 void obj_free(obj_t obj);
-void objects_free(obj_t obj);
 
 #endif

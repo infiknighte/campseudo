@@ -13,5 +13,6 @@ add_executable (campseudo
     src/parser.c include/parser.h
     src/obj.c include/obj.h
     src/memory.c include/memory.h
+    src/table.c include/table.h
 )
 target_include_directories (campseudo PRIVATE include)

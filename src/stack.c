@@ -5,7 +5,7 @@
 #define CAPACITY_INIT 8U
 #define CAPACITY_MULT 2U
 
-void stack_new(stack_t *stack) {
+void stack_init(stack_t *stack) {
   *stack = reallocate(
       NULL, 0, sizeof(struct stack) + CAPACITY_INIT * sizeof(struct value));
   (*stack)->capacity = CAPACITY_INIT;

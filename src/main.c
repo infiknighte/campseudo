@@ -79,13 +79,14 @@ int main(int argc, const char *argv[]) {
   ast_print(ast);
   puts("\n");
 
-  chunk_t chunk;
-  chunk_new(&chunk);
-  chunk_write_from_ast(&chunk, ast);
-  chunk_write(&chunk, OPCODE_RETURN, 2);
-
   struct vm vm;
   vm_init(&vm);
+
+  chunk_t chunk;
+  chunk_init(&chunk);
+  chunk_write_from_ast(&chunk, ast, &vm.objects, &vm.strings);
+  chunk_write(&chunk, OPCODE_RETURN, 2);
+
   vm_interpret(&vm, chunk);
 
   ast_arena_free(&arena);

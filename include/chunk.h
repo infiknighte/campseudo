@@ -3,6 +3,7 @@
 
 #include "ast.h"
 #include "common.h"
+#include "table.h"
 #include "value.h"
 #include <stdint.h>
 
@@ -39,14 +40,15 @@ typedef struct chunk {
   enum opcode code[];
 } *chunk_t;
 
-void chunk_new(chunk_t *chunk);
+void chunk_init(chunk_t *chunk);
 void chunk_free(chunk_t *chunk);
 void chunk_write(chunk_t *chunk, enum opcode byte, uint32_t line);
 uint32_t chunk_add_constant(chunk_t chunk, struct value value);
 uint32_t chunk_get_line(chunk_t chunk, uint32_t index);
 uint32_t chunk_write_constant(chunk_t *chunk, struct value value,
                               uint32_t line);
-void chunk_write_from_ast(chunk_t *chunk, struct ast *ast);
+void chunk_write_from_ast(chunk_t *chunk, struct ast *ast, obj_t *objects,
+                          table_t *table);
 
 #ifdef DEBUG_CHUNK
 void chunk_disassemble(chunk_t chunk, const char *name);

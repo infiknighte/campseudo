@@ -1,7 +1,6 @@
 #include "chunk.h"
 #include "memory.h"
 #include "obj.h"
-#include "value.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +34,7 @@ static void _line_write(line_array_t *array, uint32_t line) {
   (*array)->count += 2;
 }
 
-void chunk_new(chunk_t *chunk) {
+void chunk_init(chunk_t *chunk) {
   *chunk = reallocate(NULL, 0, sizeof(struct chunk) + CAPACITY_INIT);
   (*chunk)->count = 0;
   value_array_new(&(*chunk)->constants);
@@ -93,7 +92,8 @@ uint32_t chunk_get_line(chunk_t chunk, uint32_t index) {
   return 0;
 }
 
-void chunk_write_from_ast(chunk_t *chunk, struct ast *ast) {
+void chunk_write_from_ast(chunk_t *chunk, struct ast *ast, obj_t *objects,
+                          table_t *strings) {
 #define WRITE_VALUE(value)                                                     \
   do {                                                                         \
     if (255 > (*chunk)->count) {                                               \
@@ -106,12 +106,12 @@ void chunk_write_from_ast(chunk_t *chunk, struct ast *ast) {
   } while (false)
 
 #define WRITE_UNARY(opcode)                                                    \
-  chunk_write_from_ast(chunk, ast->as.expr);                                   \
+  chunk_write_from_ast(chunk, ast->as.expr, objects, strings);                          \
   chunk_write(chunk, opcode, ast->line)
 
 #define WRITE_BINARY(opcode)                                                   \
-  chunk_write_from_ast(chunk, ast->as.binary.lhs);                             \
-  chunk_write_from_ast(chunk, ast->as.binary.rhs);                             \
+  chunk_write_from_ast(chunk, ast->as.binary.lhs, objects, strings);                    \
+  chunk_write_from_ast(chunk, ast->as.binary.rhs, objects, strings);                    \
   chunk_write(chunk, opcode, ast->line)
 
   switch (ast->kind) {
@@ -128,8 +128,9 @@ void chunk_write_from_ast(chunk_t *chunk, struct ast *ast) {
     WRITE_VALUE(VALUE_FROM_INTEGER(ast->as.integer));
     break;
   case NODE_KIND_STRING:
-    WRITE_VALUE(VALUE_FROM_OBJ(
-        obj_string_ref(ast->as.string.chars + 1, ast->as.string.length - 2)));
+    WRITE_VALUE(VALUE_FROM_OBJ(obj_string_ref(objects, strings,
+                                              ast->as.string.chars + 1,
+                                              ast->as.string.length - 2)));
     break;
   case NODE_KIND_NOT:
     WRITE_UNARY(OPCODE_NOT);
@@ -141,7 +142,7 @@ void chunk_write_from_ast(chunk_t *chunk, struct ast *ast) {
     // WRITE_UNARY(OPCODE_POINTER);
     break;
   case NODE_KIND_GROUP:
-    chunk_write_from_ast(chunk, ast->as.expr);
+    chunk_write_from_ast(chunk, ast->as.expr, objects, strings);
     break;
   case NODE_KIND_ADD:
     WRITE_BINARY(OPCODE_ADD);

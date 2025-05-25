@@ -48,12 +48,8 @@ bool value_is_equal(struct value a, struct value b) {
     return VALUE_AS_REAL(a) == VALUE_AS_BOOL(b);
   case VALUE_KIND_INTEGER:
     return VALUE_AS_INTEGER(a) == VALUE_AS_BOOL(b);
-  case VALUE_KIND_OBJ: {
-    obj_string_t a_str = VALUE_AS_STRING(a);
-    obj_string_t b_str = VALUE_AS_STRING(b);
-    return a_str->length == b_str->length &&
-           !memcmp(OBJ_AS_CSTRING(a_str), OBJ_AS_CSTRING(a_str), a_str->length);
-  }
+  case VALUE_KIND_OBJ:
+    return VALUE_AS_OBJ(a) == VALUE_AS_OBJ(b);
   }
 }
 

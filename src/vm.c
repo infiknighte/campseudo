@@ -1,5 +1,4 @@
 #include "vm.h"
-#include "chunk.h"
 #include "obj.h"
 #include "value.h"
 #include <stdint.h>
@@ -10,24 +9,28 @@
 #endif
 
 void vm_init(struct vm *vm) {
-  stack_new(&vm->stack);
   vm->objects = NULL;
+  stack_init(&vm->stack);
+  table_init(&vm->strings);
 }
 
 void vm_free(struct vm *vm) {
   stack_free(&vm->stack);
-  objects_free(vm->objects);
+  table_free(&vm->strings);
+  objects_free(&vm->objects);
 }
 
 static void _concat(struct vm *vm) {
   obj_string_t b = VALUE_AS_STRING(stack_pop(vm->stack));
   obj_string_t a = VALUE_AS_STRING(stack_pop(vm->stack));
 
-  obj_string_t c = obj_string_new(a->length + b->length);
-  memcpy(c->as.owned, OBJ_AS_CSTRING(a), a->length);
-  memcpy(c->as.owned + a->length, OBJ_AS_CSTRING(b), b->length);
+  uint32_t length = a->length + b->length;
+  char c[length];
+  memcpy(c, OBJ_AS_CSTRING(a), a->length);
+  memcpy(c + a->length, OBJ_AS_CSTRING(b), b->length);
 
-  stack_put(&vm->stack, VALUE_FROM_OBJ(c));
+  stack_put(&vm->stack, VALUE_FROM_OBJ(obj_string_copy(
+                            &vm->objects, &vm->strings, c, length)));
 }
 
 static enum interpret_result _run(struct vm *vm) {

@@ -9,7 +9,7 @@ typedef struct stack {
   struct value values[];
 } *stack_t;
 
-void stack_new(stack_t *stack);
+void stack_init(stack_t *stack);
 void stack_put(stack_t *stack, struct value value);
 struct value stack_pop(stack_t stack);
 void stack_reset(stack_t stack);
