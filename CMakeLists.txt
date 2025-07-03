@@ -14,5 +14,6 @@ add_executable (campseudo
     src/obj.c include/obj.h
     src/memory.c include/memory.h
     src/table.c include/table.h
+    src/arena.c include/arena.h
 )
 target_include_directories (campseudo PRIVATE include)

@@ -2,16 +2,19 @@
 #define CAMPSEUDO_VALUE_H
 
 #include "common.h"
+#include "memory.h"
 
 #define VALUE_AS_OBJ(value) (value).as.obj
 #define VALUE_AS_BOOL(value) (value).as.boolean
 #define VALUE_AS_CHAR(value) (value).as.cha
 #define VALUE_AS_REAL(value) (value).as.real
 #define VALUE_AS_INTEGER(value) (value).as.integer
-#define VALUE_AS_STRING(value) (obj_string_t)(value).as.obj
+#define VALUE_AS_STRING(value) (struct obj_string *)(value).as.obj
+#define VALUE_AS_NUMBER(value)                                                 \
+  ((value).kind == VALUE_KIND_INTEGER ? (value).as.integer : (value).as.real)
 
 #define VALUE_FROM_OBJ(object)                                                 \
-  (struct value) { VALUE_KIND_OBJ, .as.obj = (obj_t)object }
+  (struct value) { VALUE_KIND_OBJ, .as.obj = (struct obj *)object }
 #define VALUE_FROM_BOOL(bool)                                                  \
   (struct value) { VALUE_KIND_BOOL, .as.boolean = bool }
 #define VALUE_FROM_CHAR(char)                                                  \
@@ -20,11 +23,14 @@
   (struct value) { VALUE_KIND_REAL, .as.real = real_ }
 #define VALUE_FROM_INTEGER(int)                                                \
   (struct value) { VALUE_KIND_INTEGER, .as.integer = int }
+#define VALUE_NONE()                                                           \
+  (struct value) { VALUE_KIND_NONE }
 
-typedef struct obj *obj_t;
-typedef struct obj_string *obj_string_t;
+struct obj;
+struct obj_string;
 
 enum value_kind : uint8_t {
+  VALUE_KIND_NONE,
   VALUE_KIND_BOOL,
   VALUE_KIND_CHAR,
   VALUE_KIND_REAL,
@@ -39,20 +45,24 @@ struct value {
     uint8_t cha;
     double real;
     int64_t integer;
-    obj_t obj;
+    struct obj *obj;
   } as;
 };
 
-typedef struct value_array {
+struct value_array {
   uint32_t count, capacity;
   struct value values[];
-} *value_array_t;
+};
 
-void value_array_new(value_array_t *array);
-void value_array_free(value_array_t *array);
-void value_array_write(value_array_t *array, struct value value);
+struct value_array *value_array_new(void);
+void value_array_write(struct value_array **array, struct value value);
 
 bool value_is_equal(struct value a, struct value b);
+
+static inline void value_array_free(struct value_array *array) {
+  MEM_FREE(array,
+           sizeof(struct value_array) + array->capacity * sizeof(struct value));
+}
 
 #ifdef DEBUG_CHUNK
 void value_print(struct value value);

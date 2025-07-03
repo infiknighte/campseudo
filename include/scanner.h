@@ -1,7 +1,7 @@
 #ifndef CAMPSEUDO_LEXER_H
 #define CAMPSEUDO_LEXER_H
 
-#include "common.h"
+#include <stdint.h>
 
 #define TOKEN_UNDEFINED                                                        \
   ((struct token){.kind = 0, .start = NULL, .length = 0, .line = 0})
@@ -112,9 +112,9 @@ enum token_kind : uint8_t {
 
 struct token {
   enum token_kind kind;
-  const char *start;
-  uint32_t length;
   uint32_t line;
+  const char *start;
+  uint16_t length;
 };
 
 struct scanner {

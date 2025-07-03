@@ -1,5 +1,6 @@
 #include "scanner.h"
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -8,43 +9,39 @@ static inline bool _is_at_end(struct scanner scanner) {
 }
 
 static struct token _make_token(struct scanner scanner, enum token_kind kind) {
-  struct token token;
-  token.kind = kind;
-  token.start = scanner.start;
-  token.length = (uint32_t)(scanner.current - scanner.start);
-  token.line = scanner.line;
-  return token;
+  return (struct token){
+      .kind = kind,
+      .start = scanner.start,
+      .length = scanner.current - scanner.start,
+      .line = scanner.line,
+  };
 }
 
-static struct token _error_token(struct scanner scanner, const char *message) {
-  struct token token;
-  token.kind = TOKEN_KIND_SP_ERROR;
-  token.start = message;
-  token.length = (int32_t)strlen(message);
-  token.line = scanner.line;
-  return token;
+static inline struct token _error_token(struct scanner scanner, const char *message) {
+  return (struct token){
+      .kind = TOKEN_KIND_SP_ERROR,
+      .start = message,
+      .length = strlen(message),
+      .line = scanner.line,
+  };
 }
 
-static char _advance(struct scanner *scanner) {
-  scanner->current++;
-  return scanner->current[-1];
+static inline char _advance(struct scanner *scanner) {
+  return *(scanner->current++);
 }
 
 static bool _match(struct scanner *scanner, char expected) {
-  if (*scanner->current != expected) {
-    return false;
+  if (*scanner->current == expected) {
+    scanner->current++;
+    return true;
   }
-  scanner->current++;
-  return true;
+  return false;
 }
 
 static inline char _peek(struct scanner scanner) { return *scanner.current; }
 
 static inline char _peek_next(struct scanner scanner) {
-  if (_is_at_end(scanner)) {
-    return 0;
-  }
-  return scanner.current[1];
+  return (_is_at_end(scanner)) ? 0 : scanner.current[1];
 }
 
 static void _skip_whitespace(struct scanner *scanner) {
@@ -73,8 +70,9 @@ static void _skip_whitespace(struct scanner *scanner) {
 
 static struct token _make_string(struct scanner *scanner) {
   while (_peek(*scanner) != '"' && !_is_at_end(*scanner)) {
-    if (_peek(*scanner) == '\n')
+    if (_peek(*scanner) == '\n') {
       ++scanner->line;
+    }
     _advance(scanner);
   }
 
@@ -127,9 +125,10 @@ static struct token _make_number(struct scanner *scanner) {
                  : _make_token(*scanner, TOKEN_KIND_LT_INTEGER);
 }
 
-static enum token_kind _check_keyword(struct scanner scanner, uint32_t start,
-                                      uint32_t length, const char *rest,
-                                      enum token_kind kind) {
+static inline enum token_kind _check_keyword(struct scanner scanner,
+                                             uint16_t start, uint16_t length,
+                                             const char *rest,
+                                             enum token_kind kind) {
   return scanner.current - scanner.start == start + length &&
                  !memcmp(scanner.start + start, rest, length)
              ? kind
@@ -448,7 +447,8 @@ static enum token_kind _make_identifier_kind(struct scanner scanner) {
 }
 
 static struct token _make_identifier(struct scanner *scanner) {
-  while (isalnum(_peek(*scanner)) || _peek(*scanner) == '_') {
+  char c;
+  while ((c = _peek(*scanner)) == '_' || isalnum(c)) {
     _advance(scanner);
   }
   return _make_token(*scanner, _make_identifier_kind(*scanner));

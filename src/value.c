@@ -1,29 +1,19 @@
 #include "value.h"
-#include "memory.h"
 #include "obj.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define CAPACITY_INIT 8U
 #define CAPACITY_MULT 2U
 
-void value_array_new(value_array_t *array) {
-  *array = reallocate(
-      NULL, 0, sizeof(value_array_t) + CAPACITY_INIT * sizeof(struct value));
-  (*array)->capacity = CAPACITY_INIT;
-  (*array)->count = 0;
+struct value_array *value_array_new(void) {
+  struct value_array *array = MEM_ALLOC(sizeof(struct value_array *) +
+                                        sizeof(struct value) * CAPACITY_INIT);
+  array->count = 0;
+  array->capacity = CAPACITY_INIT;
+  return array;
 }
 
-void value_array_free(value_array_t *array) {
-  reallocate(*array,
-             sizeof(struct value_array) +
-                 (*array)->capacity * sizeof(struct value),
-             0);
-  *array = NULL;
-}
-
-void value_array_write(value_array_t *array, struct value value) {
+void value_array_write(struct value_array **array, struct value value) {
   if ((*array)->capacity < (*array)->count + 1) {
     uint32_t new_capcity = (*array)->capacity * CAPACITY_MULT;
     *array = reallocate(
@@ -40,6 +30,8 @@ bool value_is_equal(struct value a, struct value b) {
     return false;
   }
   switch (a.kind) {
+  case VALUE_KIND_NONE:
+    return true;
   case VALUE_KIND_BOOL:
     return VALUE_AS_BOOL(a) == VALUE_AS_BOOL(b);
   case VALUE_KIND_CHAR:
@@ -58,6 +50,9 @@ bool value_is_equal(struct value a, struct value b) {
 
 void value_print(struct value value) {
   switch (value.kind) {
+  case VALUE_KIND_NONE:
+    fputs("NONE", stderr);
+    break;
   case VALUE_KIND_BOOL:
     fputs(value.as.boolean ? "TRUE" : "FALSE", stderr);
     break;

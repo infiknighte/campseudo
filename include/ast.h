@@ -3,10 +3,13 @@
 
 #include "common.h"
 #include <stdint.h>
-
-#define AST_NODE()
+#include <stdlib.h>
 
 enum node_kind : uint8_t {
+  NODE_KIND_PROGRAM,
+  NODE_KIND_OUTPUT_STMT,
+  NODE_KIND_EXPR_STMT,
+  NODE_KIND_END,
 
   // Terminals
   NODE_KIND_BOOL,
@@ -14,12 +17,12 @@ enum node_kind : uint8_t {
   NODE_KIND_REAL,
   NODE_KIND_INTEGER,
   NODE_KIND_STRING,
+  NODE_KIND_VAR_DECL,
+  NODE_KIND_VAR_GET,
 
   // Unary Expresions
   NODE_KIND_NOT,
   NODE_KIND_NEGATE,
-  NODE_KIND_POINTER,
-  NODE_KIND_GROUP,
 
   // Binary Expresions
   NODE_KIND_ADD,
@@ -37,7 +40,6 @@ enum node_kind : uint8_t {
   NODE_KIND_GREATER_EQUAL,
   NODE_KIND_LESS,
   NODE_KIND_LESS_EQUAL,
-
 };
 
 struct ast {
@@ -50,8 +52,8 @@ struct ast {
     int64_t integer;
     struct {
       uint32_t length;
-      const char *chars;
-    } string;
+      const uint8_t *chars;
+    } string, ident;
 
     struct ast *expr;
 
@@ -59,24 +61,32 @@ struct ast {
       struct ast *lhs;
       struct ast *rhs;
     } binary;
+
+    struct {
+      struct ast *expr;
+      struct {
+        uint32_t length;
+        const uint8_t *start;
+      } ident;
+    } var;
+
+    struct {
+      const char *name;
+      struct ast_array *decls;
+    } program;
+
   } as;
 };
 
-typedef struct ast_block {
-  uint32_t size;
-  struct ast *offset;
-  struct ast_block *next;
-  struct ast data[];
-} *ast_block_t;
-
-struct ast_arena {
-  struct ast_block *current;
-  ast_block_t blocks;
+struct ast_array {
+  uint64_t count, capacity;
+  struct ast *ptr[];
 };
 
-void ast_arena_new(struct ast_arena *arena);
-struct ast *ast_arena_make(struct ast_arena *arena);
-void ast_arena_free(struct ast_arena *arena);
+struct ast_array *ast_array_new(void);
+void ast_array_push(struct ast_array **array, struct ast *ast);
+
+static inline void ast_array_free(struct ast_array *array) { free(array); }
 
 #ifdef DEBUG_AST
 void ast_print(const struct ast *ast);

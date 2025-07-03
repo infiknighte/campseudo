@@ -6,11 +6,12 @@
 #include "table.h"
 
 struct vm {
-  uint8_t *ip;
-  obj_t objects;
-  chunk_t chunk;
-  stack_t stack;
-  table_t strings;
+  const enum opcode *ip;
+  const struct chunk *chunk;
+  struct obj *objects;
+  struct stack *stack;
+  struct table *globals;
+  struct table *strings;
 };
 
 enum interpret_result {
@@ -20,8 +21,13 @@ enum interpret_result {
 };
 
 void vm_init(struct vm *vm);
-void vm_free(struct vm *vm);
-enum interpret_result vm_interpret(struct vm *vm, const chunk_t chunk);
-void obj_free(obj_t obj);
+void vm_free(const struct vm *vm);
+enum interpret_result vm_interpret(struct vm *vm, const struct chunk *chunk);
+void obj_free(struct obj *obj);
+
+static inline void vm_reset(struct vm *vm) {
+  vm->ip = vm->chunk->code;
+  stack_reset(vm->stack);
+}
 
 #endif

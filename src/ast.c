@@ -1,45 +1,21 @@
 #include "ast.h"
-#include "memory.h"
-#include <stdint.h>
-#include <stdlib.h>
 
-#define CAPACITY_INIT 1024U
-#define CAPACITY_GROW(x) ((x) * 3U / 2U)
-
-static void _block_new(ast_block_t *block, uint32_t size) {
-  *block =
-      reallocate(NULL, 0, sizeof(struct ast_block) + size * sizeof(struct ast));
-  **block =
-      (struct ast_block){.size = size, .next = NULL, .offset = (*block)->data};
+struct ast_array *ast_array_new(void) {
+  struct ast_array *array =
+      malloc(sizeof(struct ast_array) + 64 * sizeof(struct ast));
+  *array = (struct ast_array){.count = 0, .capacity = 64};
+  return array;
 }
 
-void ast_arena_new(struct ast_arena *arena) {
-  _block_new(&arena->blocks, CAPACITY_INIT);
-  arena->current = arena->blocks;
-}
-
-struct ast *ast_arena_make(struct ast_arena *arena) {
-  if (arena->current->offset - arena->current->data >= arena->current->size) {
-    uint32_t new_size = CAPACITY_GROW(arena->current->size);
-    _block_new(&arena->current->next, new_size);
-    arena->current = arena->current->next;
+void ast_array_push(struct ast_array **array, struct ast *ast) {
+  struct ast_array *arr = *array;
+  if (arr->count >= arr->capacity) {
+    uint64_t new_capacity = arr->capacity * 2;
+    *array = arr = realloc(arr, sizeof(struct ast_array) +
+                                    new_capacity * sizeof(struct ast *));
+    arr->capacity = new_capacity;
   }
-  return arena->current->offset++;
-}
-
-static void _block_free(ast_block_t block) {
-  while (block) {
-    ast_block_t next = block->next;
-    reallocate(block,
-               sizeof(struct ast_block) + block->size * sizeof(struct ast), 0);
-    block = next;
-  }
-}
-
-void ast_arena_free(struct ast_arena *arena) {
-  _block_free(arena->blocks);
-  arena->blocks = NULL;
-  arena->current = NULL;
+  arr->ptr[arr->count++] = ast;
 }
 
 #ifdef DEBUG_AST
@@ -48,12 +24,12 @@ void ast_arena_free(struct ast_arena *arena) {
 
 static const char *node_kind_to_str(enum node_kind kind) {
   switch (kind) {
+  case NODE_KIND_PROGRAM:
+    return "MODULE";
   case NODE_KIND_BOOL:
     return "BOOL";
   case NODE_KIND_CHAR:
     return "CHAR";
-  case NODE_KIND_GROUP:
-    return "GROUP";
   case NODE_KIND_REAL:
     return "REAL";
   case NODE_KIND_INTEGER:
@@ -62,8 +38,6 @@ static const char *node_kind_to_str(enum node_kind kind) {
     return "NOT";
   case NODE_KIND_NEGATE:
     return "-";
-  case NODE_KIND_POINTER:
-    return "^";
   case NODE_KIND_ADD:
     return "+";
   case NODE_KIND_SUB:
@@ -113,7 +87,7 @@ void ast_print(const struct ast *ast) {
     fprintf(stderr, "%f", ast->as.real);
     break;
   case NODE_KIND_INTEGER:
-    fprintf(stderr, "%lli", ast->as.integer);
+    fprintf(stderr, "%lld", ast->as.integer);
     break;
   case NODE_KIND_CHAR:
     fprintf(stderr, "'%c'", ast->as.cha);
@@ -121,17 +95,43 @@ void ast_print(const struct ast *ast) {
   case NODE_KIND_STRING:
     fprintf(stderr, "%.*s", ast->as.string.length, ast->as.string.chars);
     break;
-  case NODE_KIND_GROUP:
-    fputc('(', stderr);
+  case NODE_KIND_NOT:
+  case NODE_KIND_NEGATE:
+    fprintf(stderr, "(%s ", node_kind_to_str(ast->kind));
     ast_print(ast->as.expr);
     fputc(')', stderr);
     break;
-  case NODE_KIND_NOT:
-  case NODE_KIND_NEGATE:
-  case NODE_KIND_POINTER:
-    printf("(%s ", node_kind_to_str(ast->kind));
+  case NODE_KIND_PROGRAM: {
+    fprintf(stderr, "PROGRAM \'%s\'\n", ast->as.program.name);
+    struct ast_array *decls = ast->as.program.decls;
+    for (uint32_t i = 0; i < decls->count; ++i) {
+      ast_print(decls->ptr[i]);
+    }
+    break;
+  }
+  case NODE_KIND_VAR_DECL: {
+    fprintf(stderr, "%d| DECLARE %.*s", ast->line, ast->as.var.ident.length,
+            ast->as.var.ident.start);
+    if (ast->as.var.expr) {
+      fputs(" <- ", stderr);
+      ast_print(ast->as.var.expr);
+    }
+    putc('\n', stderr);
+    break;
+  }
+  case NODE_KIND_VAR_GET:
+    fprintf(stderr, "%.*s", ast->as.ident.length, ast->as.ident.chars);
+    break;
+  case NODE_KIND_OUTPUT_STMT: {
+    fprintf(stderr, "%d| OUTPUT ", ast->line);
     ast_print(ast->as.expr);
-    fputc(')', stderr);
+    putc('\n', stderr);
+    break;
+  }
+  case NODE_KIND_EXPR_STMT:
+    fprintf(stderr, "%d| ", ast->line);
+    ast_print(ast->as.expr);
+    putc('\n', stderr);
     break;
   case NODE_KIND_ADD:
   case NODE_KIND_SUB:
@@ -153,6 +153,12 @@ void ast_print(const struct ast *ast) {
     fprintf(stderr, " %s ", node_kind_to_str(ast->kind));
     ast_print(ast->as.binary.rhs);
     fputc(')', stderr);
+    break;
+  case NODE_KIND_END:
+    fprintf(stderr, "%d| END\n", ast->line);
+    break;
+  default:
+    fprintf(stderr, "Unknown Node Kind found %d", ast->kind);
     break;
   }
 }

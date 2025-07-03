@@ -7,89 +7,88 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void interpret(const char *source) {
+struct chunk *interpret(const char *program, const char *source,
+                        struct arena **arena, struct vm *vm,
+                        struct chunk *chunk) {
   struct scanner scanner;
+  struct parser parser;
   scanner_init(&scanner, source);
-  uint32_t line = 0;
-  for (;;) {
-    struct token token = scanner_scan_token(&scanner);
-    if (token.line != line) {
-      printf("%5d ", token.line);
-      line = token.line;
-    } else {
-      printf("    | ");
-    }
-    if (token.kind == TOKEN_KIND_SP_EOL) {
-      puts("01 <EOL>");
-      continue;
-    }
-    if (token.kind == TOKEN_KIND_SP_EOF) {
-      puts("00 <EOF>");
-      break;
-    }
-    printf("%02d %.*s\n", token.kind, token.length, token.start);
-  }
+  parser_init(&parser, &scanner);
+
+  struct ast *ast = parser_parse(&parser, arena, program);
+
+  ast_print(ast);
+
+  chunk_write_ast(&chunk, ast, &vm->objects, &vm->strings);
+
+  vm_interpret(vm, chunk);
+
+  return chunk;
 }
 
 static void repl() {
   char line[1024];
+  struct vm vm;
+  vm_init(&vm);
+  struct chunk *chunk = chunk_new();
+  struct arena *arena = arena_new(64 * sizeof(struct ast)); // fixed
+
   for (;;) {
     printf("> ");
-
     if (!fgets(line, sizeof(line), stdin)) {
-      printf("\n");
+      putchar('\n');
       break;
     }
 
-    interpret(line);
+    chunk = interpret("<stdin>", line, &arena, &vm, chunk);
+
+    vm_reset(&vm);
+    chunk_reset(chunk);
+    arena_reset(arena);
   }
+
+  vm_free(&vm);
+  chunk_free(chunk);
+  arena_free(arena);
 }
 
-static char *readFile(const char *path) {
+static char *read_file(const char *path) {
   FILE *file = fopen(path, "rb");
 
   fseek(file, 0L, SEEK_END);
   size_t file_size = ftell(file);
   rewind(file);
 
-  char *buffer = malloc(file_size + 1);
+  char *buffer = malloc(file_size + 2);
   size_t bytes_read = fread(buffer, sizeof(char), file_size, file);
-  buffer[bytes_read] = '\0';
+
+  if (buffer[bytes_read - 1] != '\n') {
+    buffer[bytes_read++] = '\n';
+  }
+
+  buffer[bytes_read] = 0;
 
   fclose(file);
   return buffer;
 }
 
 void run_file(const char *path) {
-  char *source = readFile(path);
-  interpret(source);
+  char *source = read_file(path);
+  struct vm vm;
+  vm_init(&vm);
+  struct chunk *chunk = chunk_new();
+  struct arena *arena = arena_new(sizeof(struct ast) * 1024);
+
+  chunk = interpret(path, source, &arena, &vm, chunk);
+
+  vm_free(&vm);
+  chunk_free(chunk);
+  arena_free(arena);
   free(source);
 }
 
 int main(int argc, const char *argv[]) {
-  struct scanner scanner;
-  struct parser parser;
-  struct ast_arena arena;
-
-  scanner_init(&scanner, "\"st\" & \"ri\" & \"ng\"");
-  ast_arena_new(&arena);
-  parser_init(&parser, &arena, &scanner);
-
-  struct ast *ast = parser_parse(&parser);
-  ast_print(ast);
-  puts("\n");
-
-  struct vm vm;
-  vm_init(&vm);
-
-  chunk_t chunk;
-  chunk_init(&chunk);
-  chunk_write_from_ast(&chunk, ast, &vm.objects, &vm.strings);
-  chunk_write(&chunk, OPCODE_RETURN, 2);
-
-  vm_interpret(&vm, chunk);
-
-  ast_arena_free(&arena);
-
+  // run_file("../example.cpd");
+  repl();
   return 0;
 }

@@ -5,36 +5,36 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define AS_OBJ(obj) ((obj_t)obj)
-#define OBJ_AS_STRING(obj) ((obj_string_t)obj)
+#define AS_OBJ(object) ((struct obj *)object)
+#define OBJ_AS_STRING(obj) ((struct obj_string *)obj)
 #define OBJ_AS_CSTRING(obj)                                                    \
   (OBJ_AS_STRING(obj)->is_owned ? OBJ_AS_STRING(obj)->as.owned                 \
                                 : OBJ_AS_STRING(obj)->as.ref)
 
 enum obj_kind { OBJ_KIND_STRING };
 
-typedef struct obj {
+struct obj {
   enum obj_kind kind;
   struct obj *next;
-} *obj_t;
+};
 
-typedef struct obj_string {
+struct obj_string {
   struct obj obj;
   uint32_t length;
   bool is_owned;
   uint32_t hash;
   union {
-    const char *ref;
-    char owned[];
+    const uint8_t *ref;
+    uint8_t owned[];
   } as;
-} *obj_string_t;
+};
 
-void obj_print(const obj_t obj);
+void obj_print(const struct obj *obj);
 
-obj_string_t obj_string_copy(obj_t *objects, table_t *strings,
-                             const char *chars, uint32_t length);
-obj_string_t obj_string_ref(obj_t *objects, table_t *strings, const char *chars,
-                            uint32_t length);
-void objects_free(obj_t *objects);
+struct obj_string *obj_string_copy(struct obj **objects, struct table **strings,
+                                   const uint8_t *chars, uint32_t length);
+struct obj_string *obj_string_ref(struct obj **objects, struct table **strings,
+                                  const uint8_t *chars, uint32_t length);
+void objects_free(struct obj *objects);
 
 #endif
