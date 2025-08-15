@@ -123,7 +123,7 @@ static enum interpret_result _run(struct vm *vm) {
     for (struct value *slot = vm->stack->values; slot < vm->stack->top;
          slot++) {
       fputs("[ ", stderr);
-      value_print(*slot);
+      value_eprint(*slot);
       fputs(" ]", stderr);
     }
     fputc('\n', stderr);
@@ -153,13 +153,13 @@ static enum interpret_result _run(struct vm *vm) {
     case OPCODE_GET_GLOBAL_24:
       GET_VARIABLE(24);
       break;
-    case OPCODE_DEFINE_GLOBAL_8:
+    case OPCODE_DEF_GLOBAL_8:
       DEFINE_VARIABLE(8);
       break;
-    case OPCODE_DEFINE_GLOBAL_16:
+    case OPCODE_DEF_GLOBAL_16:
       DEFINE_VARIABLE(16);
       break;
-    case OPCODE_DEFINE_GLOBAL_24:
+    case OPCODE_DEF_GLOBAL_24:
       DEFINE_VARIABLE(24);
       break;
     case OPCODE_POP:
@@ -218,8 +218,6 @@ static enum interpret_result _run(struct vm *vm) {
       break;
     }
     case OPCODE_RETURN:
-      value_print(stack_pop(vm->stack));
-      fputc('\n', stderr);
       return INTERPRET_RESULT_OK;
     case OPCODE_TRUE:
       stack_put(&vm->stack,
@@ -269,7 +267,7 @@ static enum interpret_result _run(struct vm *vm) {
       _concat(vm);
       break;
     case OPCODE_OUTPUT:
-      value_print(stack_pop(vm->stack));
+      value_eprint(stack_pop(vm->stack));
       putchar('\n');
       break;
     }

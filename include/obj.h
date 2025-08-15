@@ -29,7 +29,7 @@ struct obj_string {
   } as;
 };
 
-void obj_print(const struct obj *obj);
+void obj_eprint(const struct obj *obj);
 
 struct obj_string *obj_string_copy(struct obj **objects, struct table **strings,
                                    const uint8_t *chars, uint32_t length);

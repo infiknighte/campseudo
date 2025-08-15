@@ -30,4 +30,8 @@ static inline void vm_reset(struct vm *vm) {
   stack_reset(vm->stack);
 }
 
+static inline void vm_stack_reset(const struct vm *vm) {
+  stack_reset(vm->stack);
+}
+
 #endif

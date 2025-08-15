@@ -42,7 +42,7 @@ static void repl() {
 
     chunk = interpret("<stdin>", line, &arena, &vm, chunk);
 
-    vm_reset(&vm);
+    vm_stack_reset(&vm);
     chunk_reset(chunk);
     arena_reset(arena);
   }
@@ -87,8 +87,8 @@ void run_file(const char *path) {
   free(source);
 }
 
-int main(int argc, const char *argv[]) {
-  // run_file("../example.cpd");
-  repl();
+int main(int argc, const char *const argv[]) {
+  run_file("../example.cpd");
+  // repl();
   return 0;
 }

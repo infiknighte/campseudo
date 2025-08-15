@@ -48,7 +48,7 @@ bool value_is_equal(struct value a, struct value b) {
 #ifdef DEBUG_CHUNK
 #include <stdio.h>
 
-void value_print(struct value value) {
+void value_eprint(struct value value) {
   switch (value.kind) {
   case VALUE_KIND_NONE:
     fputs("NONE", stderr);
@@ -66,7 +66,7 @@ void value_print(struct value value) {
     fprintf(stderr, "%lli", VALUE_AS_INTEGER(value));
     break;
   case VALUE_KIND_OBJ:
-    obj_print(VALUE_AS_OBJ(value));
+    obj_eprint(VALUE_AS_OBJ(value));
     break;
   }
 }

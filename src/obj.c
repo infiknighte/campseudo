@@ -97,7 +97,7 @@ void objects_free(struct obj *objects) {
 #ifdef DEBUG_OBJ
 #include <stdio.h>
 
-void obj_print(const struct obj *obj) {
+void obj_eprint(const struct obj *obj) {
   switch (obj->kind) {
   case OBJ_KIND_STRING:
     if (OBJ_AS_STRING(obj)->is_owned) {

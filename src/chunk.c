@@ -121,14 +121,14 @@ uint32_t _define_variable(struct chunk **chunk, struct value value,
   uint32_t constant = chunk_add_constant(*chunk, value);
 
   if (count < UINT8_MAX) {
-    chunk_write(chunk, OPCODE_DEFINE_GLOBAL_8, line);
+    chunk_write(chunk, OPCODE_DEF_GLOBAL_8, line);
     chunk_write(chunk, constant & 0xff, line);
   } else if (count < UINT16_MAX) {
-    chunk_write(chunk, OPCODE_DEFINE_GLOBAL_16, line);
+    chunk_write(chunk, OPCODE_DEF_GLOBAL_16, line);
     chunk_write(chunk, constant & 0xff, line);
     chunk_write(chunk, constant & 0xff00, line);
   } else if (count < UINT24_MAX) {
-    chunk_write(chunk, OPCODE_DEFINE_GLOBAL_24, line);
+    chunk_write(chunk, OPCODE_DEF_GLOBAL_24, line);
     chunk_write(chunk, constant & 0xff, line);
     chunk_write(chunk, constant & 0xff00, line);
     chunk_write(chunk, constant & 0xff0000, line);
@@ -294,15 +294,15 @@ void chunk_write_ast(struct chunk **chunk, struct ast *ast,
 
 static const char *const g_INSTRUCTION_NAME[] = {
     [OPCODE_NONE] = "NONE",
-    [OPCODE_CONSTANT_8] = "CONSTANT_8",
-    [OPCODE_CONSTANT_16] = "CONSTANT_16",
-    [OPCODE_CONSTANT_24] = "CONSTANT_24",
-    [OPCODE_DEFINE_GLOBAL_8] = "DEFINE_GLOBAL_8",
-    [OPCODE_DEFINE_GLOBAL_16] = "DEFINE_GLOBAL_16",
-    [OPCODE_DEFINE_GLOBAL_24] = "DEFINE_GLOBAL_24",
-    [OPCODE_GET_GLOBAL_8] = "GET_GLOBAL_8",
-    [OPCODE_GET_GLOBAL_16] = "GET_GLOBAL_16",
-    [OPCODE_GET_GLOBAL_24] = "GET_GLOBAL_24",
+    [OPCODE_CONSTANT_8] = "CONSTANT",
+    [OPCODE_CONSTANT_16] = "CONSTANT",
+    [OPCODE_CONSTANT_24] = "CONSTANT",
+    [OPCODE_DEF_GLOBAL_8] = "DEF_GLOBAL",
+    [OPCODE_DEF_GLOBAL_16] = "DEF_GLOBAL",
+    [OPCODE_DEF_GLOBAL_24] = "DEF_GLOBAL",
+    [OPCODE_GET_GLOBAL_8] = "GET_GLOBAL",
+    [OPCODE_GET_GLOBAL_16] = "GET_GLOBAL",
+    [OPCODE_GET_GLOBAL_24] = "GET_GLOBAL",
     [OPCODE_POP] = "POP",
     [OPCODE_TRUE] = "TRUE",
     [OPCODE_FALSE] = "FALSE",
@@ -350,7 +350,7 @@ static uint32_t _constant_instruction(enum opcode instruction,
   }
 
   fprintf(stderr, "%-16s %4u '", g_INSTRUCTION_NAME[instruction], constant);
-  value_print(chunk->constants->values[constant]);
+  value_eprint(chunk->constants->values[constant]);
   fputs("'\n", stderr);
   return offset;
 }
@@ -361,13 +361,13 @@ uint32_t _variable_instruction(enum opcode instruction,
   const enum opcode *code = chunk->code;
 
   switch (instruction) {
-  case OPCODE_DEFINE_GLOBAL_24:
+  case OPCODE_DEF_GLOBAL_24:
   case OPCODE_GET_GLOBAL_24:
     constant |= code[++offset] & 0xff0000;
-  case OPCODE_DEFINE_GLOBAL_16:
+  case OPCODE_DEF_GLOBAL_16:
   case OPCODE_GET_GLOBAL_16:
     constant |= code[++offset] & 0xff00;
-  case OPCODE_DEFINE_GLOBAL_8:
+  case OPCODE_DEF_GLOBAL_8:
   case OPCODE_GET_GLOBAL_8:
     constant |= code[++offset] & 0xff;
   default:
@@ -405,9 +405,9 @@ uint32_t chunk_disassemble_instruction(const struct chunk *chunk,
   case OPCODE_GET_GLOBAL_8:
   case OPCODE_GET_GLOBAL_16:
   case OPCODE_GET_GLOBAL_24:
-  case OPCODE_DEFINE_GLOBAL_8:
-  case OPCODE_DEFINE_GLOBAL_16:
-  case OPCODE_DEFINE_GLOBAL_24:
+  case OPCODE_DEF_GLOBAL_8:
+  case OPCODE_DEF_GLOBAL_16:
+  case OPCODE_DEF_GLOBAL_24:
     return _variable_instruction(instruction, chunk, offset);
   case OPCODE_NONE:
   case OPCODE_ADD:

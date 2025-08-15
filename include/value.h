@@ -65,7 +65,7 @@ static inline void value_array_free(struct value_array *array) {
 }
 
 #ifdef DEBUG_CHUNK
-void value_print(struct value value);
+void value_eprint(struct value value);
 #endif
 
 #endif
