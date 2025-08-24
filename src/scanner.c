@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
-static inline bool _is_at_end(struct scanner scanner) {
-  return *scanner.current == 0;
+static inline bool _is_at_end(const struct scanner *scanner) {
+  return !*scanner->current;
 }
 
 static struct token _make_token(struct scanner scanner, enum token_kind kind) {
@@ -17,7 +17,8 @@ static struct token _make_token(struct scanner scanner, enum token_kind kind) {
   };
 }
 
-static inline struct token _error_token(struct scanner scanner, const char *message) {
+static inline struct token _error_token(struct scanner scanner,
+                                        const char *message) {
   return (struct token){
       .kind = TOKEN_KIND_SP_ERROR,
       .start = message,
@@ -30,6 +31,10 @@ static inline char _advance(struct scanner *scanner) {
   return *(scanner->current++);
 }
 
+static inline char _advance_with(struct scanner *scanner, const uint32_t with) {
+  return *(scanner->current += with);
+}
+
 static bool _match(struct scanner *scanner, char expected) {
   if (*scanner->current == expected) {
     scanner->current++;
@@ -38,15 +43,17 @@ static bool _match(struct scanner *scanner, char expected) {
   return false;
 }
 
-static inline char _peek(struct scanner scanner) { return *scanner.current; }
+static inline char _peek(const struct scanner *scanner) {
+  return *scanner->current;
+}
 
-static inline char _peek_next(struct scanner scanner) {
-  return (_is_at_end(scanner)) ? 0 : scanner.current[1];
+static inline char _peek_next(const struct scanner *scanner) {
+  return (_is_at_end(scanner)) ? 0 : scanner->current[1];
 }
 
 static void _skip_whitespace(struct scanner *scanner) {
   for (;;) {
-    char c = _peek(*scanner);
+    char c = _peek(scanner);
     switch (c) {
     case ' ':
     case '\r':
@@ -54,14 +61,13 @@ static void _skip_whitespace(struct scanner *scanner) {
       _advance(scanner);
       break;
     case '/':
-      if (_peek_next(*scanner) == '/') {
-        while (_peek(*scanner) != '\n' && !_is_at_end(*scanner)) {
+      if (_peek_next(scanner) == '/') {
+        while (_peek(scanner) != '\n' && !_is_at_end(scanner)) {
           _advance(scanner);
         }
-      } else {
-        return;
+        _advance(scanner);
       }
-      break;
+      return;
     default:
       return;
     }
@@ -69,14 +75,14 @@ static void _skip_whitespace(struct scanner *scanner) {
 }
 
 static struct token _make_string(struct scanner *scanner) {
-  while (_peek(*scanner) != '"' && !_is_at_end(*scanner)) {
-    if (_peek(*scanner) == '\n') {
+  while (_peek(scanner) != '"' && !_is_at_end(scanner)) {
+    if (_peek(scanner) == '\n') {
       ++scanner->line;
     }
     _advance(scanner);
   }
 
-  if (_is_at_end(*scanner)) {
+  if (_is_at_end(scanner)) {
     return _error_token(*scanner, "Unterminated string.");
   }
 
@@ -85,13 +91,13 @@ static struct token _make_string(struct scanner *scanner) {
 }
 
 static struct token make_char(struct scanner *scanner) {
-  while (_peek(*scanner) != '\'' && !_is_at_end(*scanner)) {
-    if (_peek(*scanner) == '\n')
+  while (_peek(scanner) != '\'' && !_is_at_end(scanner)) {
+    if (_peek(scanner) == '\n')
       ++scanner->line;
     _advance(scanner);
   }
 
-  if (_is_at_end(*scanner)) {
+  if (_is_at_end(scanner)) {
     return _error_token(*scanner, "Unterminated character literal.");
   }
 
@@ -108,15 +114,15 @@ static struct token make_char(struct scanner *scanner) {
 }
 
 static struct token _make_number(struct scanner *scanner) {
-  while (isdigit(_peek(*scanner))) {
+  while (isdigit(_peek(scanner))) {
     _advance(scanner);
   }
 
   bool is_real = false;
-  if (_peek(*scanner) == '.' && isdigit(_peek_next(*scanner))) {
+  if (_peek(scanner) == '.' && isdigit(_peek_next(scanner))) {
     is_real = true;
     _advance(scanner);
-    while (isdigit(_peek(*scanner))) {
+    while (isdigit(_peek(scanner))) {
       _advance(scanner);
     }
   }
@@ -448,7 +454,7 @@ static enum token_kind _make_identifier_kind(struct scanner scanner) {
 
 static struct token _make_identifier(struct scanner *scanner) {
   char c;
-  while ((c = _peek(*scanner)) == '_' || isalnum(c)) {
+  while ((c = _peek(scanner)) == '_' || isalnum(c)) {
     _advance(scanner);
   }
   return _make_token(*scanner, _make_identifier_kind(*scanner));
@@ -459,7 +465,7 @@ struct token scanner_scan_token(struct scanner *scanner) {
 
   scanner->start = scanner->current;
 
-  if (_is_at_end(*scanner)) {
+  if (_is_at_end(scanner)) {
     return _make_token(*scanner, TOKEN_KIND_SP_EOF);
   }
 

@@ -159,6 +159,7 @@ static struct ast *_prefix_not(struct parser *parser) {
 }
 
 static inline struct ast *_prefix_positive(struct parser *parser) {
+  _advance(parser);
   return _parse_precedence(parser, PRECEDENCE_UNARY);
 }
 
